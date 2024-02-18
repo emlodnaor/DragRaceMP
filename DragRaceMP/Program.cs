@@ -10,4 +10,4 @@ if (!Directory.Exists("Server\\Resources\\Client\\")) Directory.CreateDirectory(
 File.Copy("bonDragRace.zip", "Server\\Resources\\Client\\" + "bonDragRace.zip", true);
 
 if (!Directory.Exists("Server\\Resources\\Server\\BonDragRace\\")) Directory.CreateDirectory("Server\\Resources\\Server\\BonDragRace\\");
-File.Copy("Resources\\Server\\BonDragRace\\DragRaceServer.lua", "Server\\Resources\\Server\\BonDragRace\\DragRaceServer.lua");
+File.Copy("Resources\\Server\\BonDragRace\\DragRaceServer.lua", "Server\\Resources\\Server\\BonDragRace\\DragRaceServer.lua", true);
