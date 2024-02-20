@@ -53,7 +53,7 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
         BonDragRace.racelog[BonDragRace.currentRace].rightReady = entered
     end
     if triggerName == "falseStartTrig" then -- handels false starts
-        if BonDragRace.raceActive and not BonDragRace.raceStarted then
+        if BonDragRace.activated and not BonDragRace.raceStarted then
             BonDragRaceRedLights(entered) -- detemine L/R by sender_id
         end
     end
@@ -184,8 +184,8 @@ function handleTimer()
     end
 
     if raceCanStart() then --activate the race and set the timeToStart
-        BonDragRace.racelog[BonDragRace.currentRace].activated = true
-        BonDragRace.racelog[BonDragRace.currentRace].timeToStart = os.clock() + 3 -- 3 sec
+        currentRace.activated = true
+        currentRace.timeToStart = os.clock() + 3 -- 3 sec
         debugPrint(currentRace.leftReady, currentRace.rightReady)
         if currentRace.leftReady ~= nil then BonDragRaceAmberLightsL(true) end
         if currentRace.rightReady ~= nil then BonDragRaceAmberLightsR(true) end
