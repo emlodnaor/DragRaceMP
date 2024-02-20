@@ -3,6 +3,7 @@
 -- Beams of Norway --
 ---------------------
 local M = {}
+BONDEBUG = false
 
 local function onBeamNGTrigger(data)
     debugPrint()
@@ -45,6 +46,7 @@ M.BonDragRaceLights = BonDragRaceLights
 
 --
 function debugPrint(...)
+    if not BONDEBUG then return end
     local info = debug.getinfo(2, "nSl")
     local source = info.short_src or info.source or "unknown"
     local line = info.currentline or 0

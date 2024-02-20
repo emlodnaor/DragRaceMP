@@ -20,7 +20,7 @@ function startsWith(str, pattern)
     return string.match(str, "^" .. pattern) ~= nil
 end
 function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating triggers
-    debugPrint()
+    --debugPrint()
     if data == "" then
         print(sender_id..": No data recived...")
     end
@@ -32,36 +32,60 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     local subjectId = triggerInfo.subjectID
     local triggerName = triggerInfo.triggerName
     local clientClock = theData.osclockhp
-    debugPrint(theData)
+    local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
+    --debugPrint(theData)
 
     if triggerName == "prestageTrigL" then
         BonDragRaceControllLights("lightPreStageL", entered)
         createNewRaceIfNeeded()
-        BonDragRace.racelog[BonDragRace.currentRace].leftPlayer = sender_id
+        currentRace.leftPlayer = sender_id
+        if not entered and currentRace.leftReady then
+            currentRace.leftReady = false
+        end
+        if entered and BonDragRace.lights["lightStageL"] then
+            currentRace.leftReady = true
+        end
     end
     if triggerName == "prestageTrigR" then
         BonDragRaceControllLights("lightPreStageR", entered)
         createNewRaceIfNeeded()
-        BonDragRace.racelog[BonDragRace.currentRace].rightPlayer = sender_id
+        currentRace.rightPlayer = sender_id
+        if not entered and currentRace.rightReady then
+            currentRace.rightReady = false
+        end
+        if entered and BonDragRace.lights["lightStageR"] then
+            currentRace.rightReady = true
+        end
     end
     if triggerName == "startTrigL" then
         BonDragRaceControllLights("lightStageL", entered)
-        BonDragRace.racelog[BonDragRace.currentRace].leftReady = entered
+        currentRace.leftReady = entered
     end
     if triggerName == "startTrigR" then
         BonDragRaceControllLights("lightStageR", entered)
-        BonDragRace.racelog[BonDragRace.currentRace].rightReady = entered
+        currentRace.rightReady = entered
     end
     if triggerName == "falseStartTrig" then -- handels false starts
-        if BonDragRace.activated and not BonDragRace.raceStarted then
-            BonDragRaceRedLights(entered) -- detemine L/R by sender_id
+        if currentRace.activated and not currentRace.raceStarted then
+            if entered then
+                if subjectId == currentRace.leftPlayer then
+                    currentRace.falseStartLeft = true
+                    BonDragRaceRedLightsL(entered) -- detemine L/R by sender_id
+                end
+                if subjectId == currentRace.rightPlayer then
+                    currentRace.falseStartRight = true
+                    BonDragRaceRedLightsR(entered) -- detemine L/R by sender_id
+                end
+            end
         end
     end
 
 
     if triggerName == "finishTrig" and BonDragRace.racelog[BonDragRace.currentRace].started then -- finishes the race (need to make this multiplayer aware)
-        debugPrint(BonDragRace)    
-        BonDragRace.racelog[BonDragRace.currentRace].finished = true
+            
+        currentRace.leftFinished = true
+        currentRace.rightFinished = true
+        currentRace.finished = true
         
     end
 
@@ -76,7 +100,9 @@ function createNewRaceIfNeeded() --checks if we need to create a new race
     local raceId = BonDragRace.currentRace
     if BonDragRace.racelog[BonDragRace.currentRace] == nil then
         createNewRace(raceId)
-    elseif BonDragRace.racelog[BonDragRace.currentRace].finished then
+    end
+
+    if BonDragRace.racelog[BonDragRace.currentRace].finished then
         createNewRace(raceId + 1)
     end
 end
@@ -97,10 +123,19 @@ function BonDragRaceControllLights(lightName, lightState) --lights controller, k
     MP.TriggerClientEventJson(-1, "BonDragRaceLights", data)
     BonDragRace.rightPlayer = sender_id
 end
-
+function BonDragRaceReset() 
+    BonDragRace = {}
+    BonDragRace.racelog = {}
+    BonDragRace.currentRace = 0 
+    BonDragRace.lights = {}
+    BonDragRaceAllLights(false)
+end
 function MyChatMessageHandler(sender_id, sender_name, message)
     debugPrint()
-    
+    if startsWith(message,"/reset") then --debugging
+        debugPrint("Resetting everything") 
+        BonDragRaceReset() 
+    end
     if startsWith(message,"/help") then --debugging
         debugPrint(BonDragRace) 
         return 1
@@ -114,8 +149,8 @@ function startRace(currentRace) --starts the race
     currentRace.started = true
     currentRace.startTime = os.clock()
     BonDragRaceAmberLights(false)
-    if currentRace.leftReady ~= nil then BonDragRaceAmberLightsL(true) end
-    if currentRace.rightReady ~= nil then BonDragRaceAmberLightsR(true) end
+    if currentRace.leftReady ~= nil then BonDragRaceGreenLightsL(true) end
+    if currentRace.rightReady ~= nil then BonDragRaceGreenLightsR(true) end
 end
 
 function BonDragRaceAllLights(lightState)
@@ -152,20 +187,45 @@ function BonDragRaceRedLights(lightState) --turns on or off the red lights
     BonDragRaceRedLightsR(lightState)
 end
 function BonDragRaceRedLightsL(lightState) 
-    BonDragRaceControllLights("lightGreenL", lightState)
+    BonDragRaceControllLights("lightRedL", lightState)
 end
 function BonDragRaceRedLightsR(lightState) 
-    BonDragRaceControllLights("lightGreenR", lightState)
+    BonDragRaceControllLights("lightRedR", lightState)
 end
 
 function raceCanStart()
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
-    if currentRace.createdTime + 3 > os.clock() then return false end -- gives the players 3 sec to get into the prestage, incase the first player enters the stage before they are present... 
-    if currentRace.activated then return false end
-    if not currentRace.leftReady and not currentRace.rightReady then return false end --none of the players are ready
-    if currentRace.leftReady and currentRace.rightReady then return true end --both players are ready
-    if currentRace.leftReady and currentRace.rightPlayer == nil then return true end --left player is ready and alone
-    if currentRace.rightReady and currentRace.leftPlayer == nil then return true end --rightPlayer is ready and alone
+    
+    if currentRace.createdTime + 3 > os.clock() then -- gives the players 3 sec to get into the prestage, incase the first player enters the stage before they are present... 
+        --debugPrint("Too Soon...")
+        return false 
+    end 
+    
+    if currentRace.activated then 
+        --debugPrint("Already started...")
+        return false 
+    end
+    
+    if not currentRace.leftReady and not currentRace.rightReady then --none of the players are ready
+        --debugPrint("None of the players are ready...")
+        return false 
+    end 
+    
+    if currentRace.leftReady and currentRace.rightReady then --both players are ready
+        --debugPrint("both players are ready...")
+        return true 
+    end 
+    
+    if currentRace.leftReady and currentRace.rightPlayer == nil then --left player is ready and alone
+        --debugPrint("left player is ready, right player not present...")
+        return true 
+    end 
+    
+    if currentRace.rightReady and currentRace.leftPlayer == nil then --rightPlayer is ready and alone
+        --debugPrint("right player is ready, left player not present...")
+        return true 
+    end 
+    
     return false --some conditions I didn't think about...
 
 end
@@ -186,12 +246,15 @@ function handleTimer()
     if raceCanStart() then --activate the race and set the timeToStart
         currentRace.activated = true
         currentRace.timeToStart = os.clock() + 3 -- 3 sec
-        debugPrint(currentRace.leftReady, currentRace.rightReady)
         if currentRace.leftReady ~= nil then BonDragRaceAmberLightsL(true) end
         if currentRace.rightReady ~= nil then BonDragRaceAmberLightsR(true) end
+        if currentRace.leftReady == nil then BonDragRaceRedLightsL(true) end
+        if currentRace.rightReady == nil then BonDragRaceRedLightsR(true) end
     end
 
     if currentRace.started and currentRace.startTime + 3 < os.clock() then --green lights turned off 3 sec after the race have started
+        --debugPrint("it's been 3 sec after start, turning off green lights'")
+        -- this should only trigger once
         BonDragRaceGreenLights(false)
     end
 end

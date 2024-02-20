@@ -2,6 +2,7 @@
 using System.IO.Compression;
 using System.Text;
 
+
 var clientZipName = "bonDragRace.zip";
 Console.WriteLine("Hello, World!");
 if (File.Exists(clientZipName)) File.Delete(clientZipName);
