@@ -4,7 +4,7 @@
 ---------------------
 BonDragRace = {}
 BonDragRace.racelog = {}
-BonDragRace.currentRace = 0 --this approach needs to change to fully allow next race to prepare before first ends...
+BonDragRace.currentRace = 1 --this approach needs to change to fully allow next race to prepare before first ends...
 BonDragRace.lights = {}
 
 function debugPrint(...)
@@ -30,6 +30,8 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     local triggerEvent = triggerInfo.event
     local entered = triggerEvent == "enter"
     local subjectId = triggerInfo.subjectID
+    local mpUserId = MP.GetPlayerIdentifiers(sender_id).beammp
+    local identifyer = mpUserId.."-"..subjectId
     local triggerName = triggerInfo.triggerName
     local clientClock = theData.osclockhp
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
@@ -37,8 +39,9 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
 
     if triggerName == "prestageTrigL" then
         BonDragRaceControllLights("lightPreStageL", entered)
-        createNewRaceIfNeeded()
-        currentRace.leftPlayer = sender_id
+        if entered then createNewRaceIfNeeded() end
+        local currentRace = BonDragRace.racelog[BonDragRace.currentRace] --this is needed here since it's nil before it's created
+        currentRace.leftPlayer = identifyer
         if not entered and currentRace.leftReady then
             currentRace.leftReady = false
         end
@@ -48,8 +51,9 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     end
     if triggerName == "prestageTrigR" then
         BonDragRaceControllLights("lightPreStageR", entered)
-        createNewRaceIfNeeded()
-        currentRace.rightPlayer = sender_id
+        if entered then createNewRaceIfNeeded() end
+        local currentRace = BonDragRace.racelog[BonDragRace.currentRace] --this is needed here since it's nil before it's created
+        currentRace.rightPlayer = identifyer
         if not entered and currentRace.rightReady then
             currentRace.rightReady = false
         end
@@ -66,15 +70,22 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
         currentRace.rightReady = entered
     end
     if triggerName == "falseStartTrig" then -- handels false starts
-        if currentRace.activated and not currentRace.raceStarted then
+        debugPrint(currentRace.activated, currentRace.started)
+        if currentRace.activated and not currentRace.started then
             if entered then
-                if subjectId == currentRace.leftPlayer then
+                if identifyer == currentRace.leftPlayer then
                     currentRace.falseStartLeft = true
-                    BonDragRaceRedLightsL(entered) -- detemine L/R by sender_id
+                    currentRace.leftFinished = true --hmm
+                    BonDragRaceRedLightsL(true)
+                    BonDragRaceFinishARace()
                 end
-                if subjectId == currentRace.rightPlayer then
+                if identifyer == currentRace.rightPlayer then
                     currentRace.falseStartRight = true
-                    BonDragRaceRedLightsR(entered) -- detemine L/R by sender_id
+                    currentRace.rightFinished = true --hmm
+                    debugPrint()
+                    BonDragRaceRedLightsR(true)
+                    debugPrint()
+                    BonDragRaceFinishARace()
                 end
             end
         end
@@ -83,18 +94,37 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
 
     if triggerName == "finishTrig" and BonDragRace.racelog[BonDragRace.currentRace].started then -- finishes the race (need to make this multiplayer aware)
             
-        currentRace.leftFinished = true
-        currentRace.rightFinished = true
-        currentRace.finished = true
+        if identifyer == currentRace.leftPlayer then currentRace.leftFinished = true end
+        if identifyer == currentRace.rightPlayer then currentRace.rightFinished = true end
+        BonDragRaceFinishARace()
         
     end
 
     if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
-        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[subjectId.."-"..triggerName.."-"..triggerEvent] = clientClock
-        
+        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
     end
+    BonDragRace.racelog[BonDragRace.currentRace].lastTriggerTime = os.clock()
 end
 
+function BonDragRaceFinishARace()
+    debugPrint()
+    if not Finished() then return end
+    debugPrint()
+    BonDragRace.racelog[BonDragRace.currentRace].finished = true
+    local currentRaceNr = BonDragRace.currentRace
+    local lastRaceNr = #BonDragRace.racelog
+    debugPrint()
+    if lastRaceNr > currentRaceNr then BonDragRace.currentRace = currentRaceNr + 1 end
+    debugPrint(lastRaceNr, currentRaceNr, currentRaceNr + 1 )
+    BonDragRaceRedLights(false)    
+end
+function Finished()
+    local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
+    if currentRace.leftFinished and currentRace.rightFinished then return true end
+    if currentRace.leftFinished and currentRace.rightPlayer == nil then return true end
+    if currentRace.leftPlayer == nil and currentRace.rightFinished then return true end
+    return false
+end
 function createNewRaceIfNeeded() --checks if we need to create a new race
     debugPrint()
     local raceId = BonDragRace.currentRace
@@ -108,9 +138,16 @@ function createNewRaceIfNeeded() --checks if we need to create a new race
 end
 function createNewRace(raceId) -- initiates a new race
     debugPrint()
+    if BonDragRace.racelog[BonDragRace.currentRace] ~= nil then
+        if BonDragRace.racelog[BonDragRace.currentRace].finished then
+            BonDragRace.currentRace = BonDragRace.currentRace + 1 
+        end
+    end
     BonDragRace.racelog[raceId] = {}
     BonDragRace.racelog[raceId].triggerTimes = {}
     BonDragRace.racelog[raceId].createdTime = os.clock()
+    BonDragRace.racelog[raceId].started = false
+    BonDragRace.racelog[raceId].activated = false
 end
 
 function BonDragRaceControllLights(lightName, lightState) --lights controller, keeps track of the state of the lights and turns them on or off
@@ -121,12 +158,11 @@ function BonDragRaceControllLights(lightName, lightState) --lights controller, k
     
     local data = {lightName = lightName, state = lightState }
     MP.TriggerClientEventJson(-1, "BonDragRaceLights", data)
-    BonDragRace.rightPlayer = sender_id
 end
 function BonDragRaceReset() 
     BonDragRace = {}
     BonDragRace.racelog = {}
-    BonDragRace.currentRace = 0 
+    BonDragRace.currentRace = 1  
     BonDragRace.lights = {}
     BonDragRaceAllLights(false)
 end
@@ -149,8 +185,9 @@ function startRace(currentRace) --starts the race
     currentRace.started = true
     currentRace.startTime = os.clock()
     BonDragRaceAmberLights(false)
-    if currentRace.leftReady ~= nil then BonDragRaceGreenLightsL(true) end
-    if currentRace.rightReady ~= nil then BonDragRaceGreenLightsR(true) end
+    if currentRace.leftReady ~= nil and currentRace.falseStartLeft == nil then BonDragRaceGreenLightsL(true) end
+    if currentRace.rightReady ~= nil and currentRace.falseStartRight == nil then BonDragRaceGreenLightsR(true) end
+    --AskClientForTimestamp(currentRace.)
 end
 
 function BonDragRaceAllLights(lightState)
@@ -196,7 +233,7 @@ end
 function raceCanStart()
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
     
-    if currentRace.createdTime + 3 > os.clock() then -- gives the players 3 sec to get into the prestage, incase the first player enters the stage before they are present... 
+    if currentRace.lastTriggerTime + 3 > os.clock() then -- gives the players 3 sec to get into the prestage, incase the first player enters the stage before they are present... 
         --debugPrint("Too Soon...")
         return false 
     end 
