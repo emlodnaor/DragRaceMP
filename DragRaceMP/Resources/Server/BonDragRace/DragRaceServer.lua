@@ -7,6 +7,10 @@ BonDragRace.racelog = {}
 BonDragRace.currentRace = 1 --this approach needs to change to fully allow next race to prepare before first ends...
 BonDragRace.lights = {}
 
+local timerPostMovement = 3 --this waits x sec after any movement(trigger activation) before activating the race (amber lights) so that both players have a change to line up properly...
+local timerAmberPeriod = 0.4 --how long the amberLights stay on
+local timerGreenOff = 3 --This turnes the green lights off x seconds after the race has started
+
 function debugPrint(...)
     local info = debug.getinfo(2, "nSl")
     local source = info.short_src or info.source or "unknown"
@@ -36,12 +40,14 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     local clientClock = theData.osclockhp
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
     --debugPrint(theData)
+    
 
     if triggerName == "prestageTrigL" then
         BonDragRaceControllLights("lightPreStageL", entered)
         if entered then createNewRaceIfNeeded() end
         local currentRace = BonDragRace.racelog[BonDragRace.currentRace] --this is needed here since it's nil before it's created
         currentRace.leftPlayer = identifyer
+        currentRace.leftPlayerSenderId = sender_id
         if not entered and currentRace.leftReady then
             currentRace.leftReady = false
         end
@@ -49,11 +55,15 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
             currentRace.leftReady = true
         end
     end
+    if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
+        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
+    end
     if triggerName == "prestageTrigR" then
         BonDragRaceControllLights("lightPreStageR", entered)
         if entered then createNewRaceIfNeeded() end
         local currentRace = BonDragRace.racelog[BonDragRace.currentRace] --this is needed here since it's nil before it's created
         currentRace.rightPlayer = identifyer
+        currentRace.rightPlayerSenderId = sender_id
         if not entered and currentRace.rightReady then
             currentRace.rightReady = false
         end
@@ -100,15 +110,16 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
         
     end
 
-    if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
-        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
-    end
+
     BonDragRace.racelog[BonDragRace.currentRace].lastTriggerTime = os.clock()
 end
 
 function BonDragRaceFinishARace()
     debugPrint()
     if not Finished() then return end
+
+    DisplayTimesOnBoard(BonDragRace.currentRace)
+
     debugPrint()
     BonDragRace.racelog[BonDragRace.currentRace].finished = true
     local currentRaceNr = BonDragRace.currentRace
@@ -116,8 +127,38 @@ function BonDragRaceFinishARace()
     debugPrint()
     if lastRaceNr > currentRaceNr then BonDragRace.currentRace = currentRaceNr + 1 end
     debugPrint(lastRaceNr, currentRaceNr, currentRaceNr + 1 )
-    BonDragRaceRedLights(false)    
+    BonDragRaceRedLights(false)
 end
+function DisplayReset()
+    local data = {leftDisplay = {hidden = true, time = 0, speed = 0}, rightDisplay = {hidden = true, time = 0, speed = 0} }
+    MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
+end
+
+function DisplayTimesOnBoard(raceNr)
+    local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
+    local leftTime = 0
+    local leftSpeed = 0
+    local rightTime = 0
+    local rightpeed = 0
+    
+    if currentRace.leftPlayer ~= nil then
+        local leftIdentifyer = currentRace.leftPlayer
+        debugPrint(leftIdentifyer)
+        debugPrint(leftIdentifyer.."-finishTrig-enter")
+        debugPrint(currentRace.triggerTimes)
+        leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - currentRace.leftStartTime 
+    end
+
+    if currentRace.rightPlayer ~= nil then
+        local rightIdentifyer = currentRace.rightPlayer
+        rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - currentRace.RightStartTime 
+    end
+
+    local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightpeed} }
+    MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
+    --BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
+end
+
 function Finished()
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
     if currentRace.leftFinished and currentRace.rightFinished then return true end
@@ -179,17 +220,29 @@ function MyChatMessageHandler(sender_id, sender_name, message)
         return 0
     end
 end
-function startRace(currentRace) --starts the race
+function startRace(raceNr) --starts the race
     debugPrint()
-    local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
+    DisplayReset()
+    local currentRace = BonDragRace.racelog[raceNr]
     currentRace.started = true
     currentRace.startTime = os.clock()
     BonDragRaceAmberLights(false)
     if currentRace.leftReady ~= nil and currentRace.falseStartLeft == nil then BonDragRaceGreenLightsL(true) end
     if currentRace.rightReady ~= nil and currentRace.falseStartRight == nil then BonDragRaceGreenLightsR(true) end
-    --AskClientForTimestamp(currentRace.)
+    AskClientForTimestamp(raceNr)
 end
-
+function AskClientForTimestamp(raceNr)
+    local currentRace = BonDragRace.racelog[raceNr]
+    local leftPlayerSenderId = currentRace.leftPlayerSenderId
+    local rightPlayerSenderId = currentRace.rightPlayerSenderId
+    local sendData = {raceNr = raceNr}
+    if leftPlayerSenderId ~= nil then
+        MP.TriggerClientEventJson(leftPlayerSenderId, "BonDragRaceReportStartTime", sendData)
+    end
+    if rightPlayerSenderId ~= nil then
+        MP.TriggerClientEventJson(rightPlayerSenderId, "BonDragRaceReportStartTime", sendData)
+    end
+end
 function BonDragRaceAllLights(lightState)
     BonDragRaceAmberLights(lightState)
     BonDragRaceGreenLights(lightState)
@@ -233,7 +286,7 @@ end
 function raceCanStart()
     local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
     
-    if currentRace.lastTriggerTime + 3 > os.clock() then -- gives the players 3 sec to get into the prestage, incase the first player enters the stage before they are present... 
+    if currentRace.lastTriggerTime + timerPostMovement > os.clock() then -- gives the players time to get into the prestage, incase the first player enters the stage before they are present... 
         --debugPrint("Too Soon...")
         return false 
     end 
@@ -282,17 +335,29 @@ function handleTimer()
 
     if raceCanStart() then --activate the race and set the timeToStart
         currentRace.activated = true
-        currentRace.timeToStart = os.clock() + 3 -- 3 sec
+        currentRace.timeToStart = os.clock() + timerAmberPeriod
         if currentRace.leftReady ~= nil then BonDragRaceAmberLightsL(true) end
         if currentRace.rightReady ~= nil then BonDragRaceAmberLightsR(true) end
         if currentRace.leftReady == nil then BonDragRaceRedLightsL(true) end
         if currentRace.rightReady == nil then BonDragRaceRedLightsR(true) end
     end
 
-    if currentRace.started and currentRace.startTime + 3 < os.clock() then --green lights turned off 3 sec after the race have started
-        --debugPrint("it's been 3 sec after start, turning off green lights'")
+    if currentRace.started and currentRace.startTime + timerGreenOff < os.clock() then 
         -- this should only trigger once
         BonDragRaceGreenLights(false)
+    end
+end
+function handleOnBonDragRaceStartTimeReport(sender_id, data)
+    decodedData = Util.JsonDecode(data)
+
+    local currentRace = BonDragRace.racelog[BonDragRace.currentRace]
+    local leftPlayerSenderId = currentRace.leftPlayerSenderId
+    local rightPlayerSenderId = currentRace.rightPlayerSenderId
+    if sender_id == leftPlayerSenderId then
+        currentRace.leftStartTime = decodedData.osclockhp
+    end
+    if sender_id == rightPlayerSenderId then
+        currentRace.rightStartTime = decodedData.osclockhp
     end
 end
 
@@ -305,4 +370,5 @@ function onInit()
     MP.RegisterEvent("onBonDragRaceTrigger", "handleOnBonDragRaceTrigger")
     MP.RegisterEvent("onConsoleInput", "handleConsoleInput")
     MP.RegisterEvent("onChatMessage", "MyChatMessageHandler")
+    MP.RegisterEvent("onBonDragRaceStartTimeReport", "handleOnBonDragRaceStartTimeReport")
 end
