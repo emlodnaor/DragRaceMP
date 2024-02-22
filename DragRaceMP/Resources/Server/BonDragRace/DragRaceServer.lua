@@ -55,9 +55,7 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
             currentRace.leftReady = true
         end
     end
-    if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
-        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
-    end
+
     if triggerName == "prestageTrigR" then
         BonDragRaceControllLights("lightPreStageR", entered)
         if entered then createNewRaceIfNeeded() end
@@ -71,6 +69,11 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
             currentRace.rightReady = true
         end
     end
+    
+    if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
+        BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
+    end
+
     if triggerName == "startTrigL" then
         BonDragRaceControllLights("lightStageL", entered)
         currentRace.leftReady = entered
@@ -151,11 +154,12 @@ function DisplayTimesOnBoard(raceNr)
 
     if currentRace.rightPlayer ~= nil then
         local rightIdentifyer = currentRace.rightPlayer
-        rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - currentRace.RightStartTime 
+        rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - currentRace.rightStartTime 
     end
 
     local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightpeed} }
     MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
+
     --BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
 end
 
