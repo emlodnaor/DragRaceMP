@@ -175,7 +175,7 @@ function DisplayTimesOnBoard(raceNr)
     end
 
     debugPrint(leftTime, leftSpeed, leftTimeDigits, leftSpeedDigits)
-    local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightpeed} }
+    local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightSpeed} }
     MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
 
     --BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
