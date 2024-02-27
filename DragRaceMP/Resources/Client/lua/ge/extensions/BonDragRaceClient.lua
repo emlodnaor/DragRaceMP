@@ -42,53 +42,103 @@ local function BonDragRaceClientResetLaneDisplays(lane)
 	BonDragRaceClientResetDisplay(Displays[lane].speed)
 end
 
-local function BonDragRaceClientSetDisplay(display, number, digits)
-	if number == 0 then
-		BonDragRaceClientResetDisplay(display)
-		return
+local function BonDragRaceClientSetDisplay(display, number, isTimeDisplay)
+    -- Check if the number is 0
+    if number == 0 then
+        BonDragRaceClientResetDisplay(display)
+        return
+    end
+	
+   -- Convert the number to a string
+    local str_number = tostring(number)
+	dump(number)
+	dump(str_number)
+
+	local str_left = ""
+	local str_right = ""
+	local afterComma = false
+	local hideDot = false
+
+	local str_number = tostring(number)
+	local str_left = ""
+	local str_right = ""
+	local afterComma = false
+
+	for i = 1, #str_number, 1 do
+		if str_number:sub(i, i) == "." then
+			afterComma = true
+		else
+        if afterComma then
+            str_right = str_right .. str_number:sub(i, i)
+			
+			else
+	            str_left = str_left .. str_number:sub(i, i)
+			end
+	    end
 	end
 
-	local str_left = tostring(math.floor(number) % (10 ^ digits))
-	local str_right = tostring(number % 1):sub(3)
-
-	for i = 1, 5, 1 do
-		local c = '0'
-		if i <= digits then
-			local index = i - (digits - #str_left)
-			c = str_left:sub(index, index)
-		else
-			local index = i - digits
-			c = str_right:sub(index, index)
-		end
-
-		if c ~= '' then
-			local path = 'art/shapes/quarter_mile_display/display_' .. c .. '.dae'
-
-			display.digits[i]:preApply()
-			display.digits[i]:setField('shapeName', 0, path)
-			display.digits[i]:setHidden(false)
-			display.digits[i]:postApply()
-		else
-			display.digits[i]:setHidden(true)
-		end
+	--make sure the number string has the correct length 
+	local dot_position = isTimeDisplay and 2 or 3
+	
+	if #str_left > dot_position then
+		hideDot = true
+		dot_position = 5
 	end
-	display.dot:setHidden(false)
+
+	while #str_left < dot_position do
+		str_left = " "..str_left
+	end
+	
+	local afterDot = 5 - dot_position
+	while #str_right < afterDot do
+		str_right = str_right .. "0"
+	end
+
+	print("l92")
+	dump(str_left)
+	dump(str_right)
+	
+	-- Update the display
+    for i = 1, 5, 1 do
+		local c = ' '
+		if i <= dot_position then
+			c = str_left:sub(i,i)
+		else
+			c = str_right:sub(i-dot_position, i-dot_position)
+		end
+		dump(c)
+		
+		if c ~= ' ' then
+            local path = 'art/shapes/quarter_mile_display/display_' .. c .. '.dae'
+
+            display.digits[i]:preApply()
+            display.digits[i]:setField('shapeName', 0, path)
+            display.digits[i]:setHidden(false)
+            display.digits[i]:postApply()
+        else
+            display.digits[i]:setHidden(true)
+        end
+    end
+
+    display.dot:setHidden(hideDot)
 end
 
 local function BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
 	local decodedData = jsonDecode(data)
 	debugPrint(decodedData)
+	dump(decodedData)
 	leftDisplayInfo = decodedData.leftDisplay
 	rightDisplayInfo = decodedData.rightDisplay
+
 	leftTimeDisplay = Displays[1].time
 	leftSpeedDisplay = Displays[1].speed
 	rightTimeDisplay = Displays[2].time
 	rightSpeedDisplay = Displays[2].speed
-		
-	BonDragRaceClientSetDisplay(leftTimeDisplay, leftDisplayInfo.time, 2)
-	BonDragRaceClientSetDisplay(leftSpeedDisplay, leftDisplayInfo.speed, 3)
-	BonDragRaceClientSetDisplay(rightTimeDisplay, rightDisplayInfo.time, 2)
-	BonDragRaceClientSetDisplay(rightSpeedDisplay, rightDisplayInfo.speed, 3)
+	
+	BonDragRaceClientSetDisplay(leftTimeDisplay, leftDisplayInfo.time, true)
+	BonDragRaceClientSetDisplay(leftSpeedDisplay, leftDisplayInfo.speed, false)
+	BonDragRaceClientSetDisplay(rightTimeDisplay, rightDisplayInfo.time, true)
+	BonDragRaceClientSetDisplay(rightSpeedDisplay, rightDisplayInfo.speed, false)
 
 	if leftDisplayInfo.hidden then
 		BonDragRaceClientResetLaneDisplays(1)
@@ -101,7 +151,9 @@ local function onBeamNGTrigger(data)
     debugPrint()
 	local currentOsClockHp = os.clockhp()
     debugPrint()
-	local jsonData = jsonEncode({eventType = "BonDragRaceTrigger", triggerInfo = data, osclockhp = currentOsClockHp})
+	local vehicle = be:getObjectByID(data.subjectID)
+	local velLen = vehicle:getVelocity():len()
+	local jsonData = jsonEncode({eventType = "BonDragRaceTrigger", triggerInfo = data, osclockhp = currentOsClockHp, velocityLen = velLen})
     debugPrint()
     TriggerServerEvent("onBonDragRaceTrigger", jsonData)
     debugPrint()

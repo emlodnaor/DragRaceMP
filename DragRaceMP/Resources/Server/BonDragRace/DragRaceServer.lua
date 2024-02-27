@@ -7,6 +7,7 @@ BonDragRace.racelog = {}
 BonDragRace.currentRace = 1 --this approach needs to change to fully allow next race to prepare before first ends...
 BonDragRace.lights = {}
 
+local metric = true -- change this to get KMph, or Mph
 local timerPostMovement = 3 --this waits x sec after any movement(trigger activation) before activating the race (amber lights) so that both players have a change to line up properly...
 local timerAmberPeriod = 0.4 --how long the amberLights stay on
 local timerGreenOff = 3 --This turnes the green lights off x seconds after the race has started
@@ -23,6 +24,13 @@ end
 function startsWith(str, pattern) 
     return string.match(str, "^" .. pattern) ~= nil
 end
+
+local function getSpeed(velocityLen)
+    local conversionFactor = metric and 3.6 or 2.2369362920544
+    local result = velocityLen * conversionFactor
+    return tonumber(string.format("%.2f", result))
+end
+
 function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating triggers
     --debugPrint()
     if data == "" then
@@ -30,6 +38,7 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     end
     
     local theData = Util.JsonDecode(data)
+    local velocityLen = theData.velocityLen
     local triggerInfo = theData.triggerInfo
     local triggerEvent = triggerInfo.event
     local entered = triggerEvent == "enter"
@@ -70,8 +79,10 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
         end
     end
     
+
     if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
         BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
+        BonDragRace.racelog[BonDragRace.currentRace].triggerSpeeds[identifyer.."-"..triggerName.."-"..triggerEvent] = getSpeed(velocityLen)
     end
 
     if triggerName == "startTrigL" then
@@ -120,6 +131,7 @@ end
 function BonDragRaceFinishARace()
     debugPrint()
     if not Finished() then return end
+    if BonDragRace.racelog[BonDragRace.currentRace].finished == true then return end
 
     DisplayTimesOnBoard(BonDragRace.currentRace)
 
@@ -145,18 +157,24 @@ function DisplayTimesOnBoard(raceNr)
     local rightpeed = 0
     
     if currentRace.leftPlayer ~= nil then
-        local leftIdentifyer = currentRace.leftPlayer
-        debugPrint(leftIdentifyer)
-        debugPrint(leftIdentifyer.."-finishTrig-enter")
-        debugPrint(currentRace.triggerTimes)
-        leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - currentRace.leftStartTime 
+        if currentRace.leftFinished then
+            local leftIdentifyer = currentRace.leftPlayer
+            local leftPrestageTime = currentRace.triggerTimes[leftIdentifyer.."-prestageTrigL-exit"]
+            leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - leftPrestageTime
+            leftSpeed = currentRace.triggerSpeeds[leftIdentifyer.."-finishTrig-enter"]
+        end
     end
 
     if currentRace.rightPlayer ~= nil then
-        local rightIdentifyer = currentRace.rightPlayer
-        rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - currentRace.rightStartTime 
+        if currentRace.rightFinished then
+            local rightIdentifyer = currentRace.rightPlayer
+            local rightPrestageTime = currentRace.triggerTimes[rightIdentifyer.."-prestageTrigR-exit"]
+            rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - rightPrestageTime
+            rightSpeed = currentRace.triggerSpeeds[rightIdentifyer.."-finishTrig-enter"]
+        end
     end
 
+    debugPrint(leftTime, leftSpeed, leftTimeDigits, leftSpeedDigits)
     local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightpeed} }
     MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
 
@@ -190,6 +208,7 @@ function createNewRace(raceId) -- initiates a new race
     end
     BonDragRace.racelog[raceId] = {}
     BonDragRace.racelog[raceId].triggerTimes = {}
+    BonDragRace.racelog[raceId].triggerSpeeds = {}
     BonDragRace.racelog[raceId].createdTime = os.clock()
     BonDragRace.racelog[raceId].started = false
     BonDragRace.racelog[raceId].activated = false
