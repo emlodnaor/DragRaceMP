@@ -155,6 +155,8 @@ function DisplayTimesOnBoard(raceNr)
     local leftSpeed = 0
     local rightTime = 0
     local rightpeed = 0
+    local displayLeft = false
+    local displayRight = false
     
     if currentRace.leftPlayer ~= nil then
         if currentRace.leftFinished then
@@ -162,6 +164,7 @@ function DisplayTimesOnBoard(raceNr)
             local leftPrestageTime = currentRace.triggerTimes[leftIdentifyer.."-prestageTrigL-exit"]
             leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - leftPrestageTime
             leftSpeed = currentRace.triggerSpeeds[leftIdentifyer.."-finishTrig-enter"]
+            displayLeft = true
         end
     end
 
@@ -171,11 +174,12 @@ function DisplayTimesOnBoard(raceNr)
             local rightPrestageTime = currentRace.triggerTimes[rightIdentifyer.."-prestageTrigR-exit"]
             rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - rightPrestageTime
             rightSpeed = currentRace.triggerSpeeds[rightIdentifyer.."-finishTrig-enter"]
+            displayRight = true
         end
     end
 
     debugPrint(leftTime, leftSpeed, leftTimeDigits, leftSpeedDigits)
-    local data = {leftDisplay = {hidden = false, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = false, time = rightTime, speed = rightSpeed} }
+    local data = {leftDisplay = {hidden = displayLeft, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = displayRight, time = rightTime, speed = rightSpeed} }
     MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
 
     --BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
