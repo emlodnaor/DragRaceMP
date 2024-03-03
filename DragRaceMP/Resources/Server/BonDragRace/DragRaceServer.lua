@@ -114,7 +114,11 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
             end
         end
     end
-
+    if triggerName == "timeSlipBoothL" or triggerName == "timeSlipBoothR" then
+        if entered then
+            sendRaceLog(identifyer, sender_id)
+        end
+    end
 
     if triggerName == "finishTrig" and BonDragRace.racelog[BonDragRace.currentRace].started then -- finishes the race (need to make this multiplayer aware)
             
@@ -128,6 +132,34 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     BonDragRace.racelog[BonDragRace.currentRace].lastTriggerTime = os.clock()
 end
 
+
+function sendRaceLog(identifyer, sender_id)
+    for i = #BonDragRace.racelog, 1, -1 do
+        
+        if BonDragRace.racelog[i].leftPlayer == identifyer then
+            local currentRace = BonDragRace.racelog[i]
+            local prestageTime = currentRace.triggerTimes[identifyer.."-prestageTrigL-exit"]
+            local time = currentRace.triggerTimes[identifyer.."-finishTrig-enter"] - prestageTime
+            local speed = currentRace.triggerSpeeds[identifyer.."-finishTrig-enter"]
+            local startSignalTime = currentRace.leftStartTime
+            local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigL-exit"] - startSignalTime
+            local speedType = metric and "km/h" or "mph"
+            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.3f", speed)..speedType..", R: "..reaction.."")
+            break
+        end
+        if BonDragRace.racelog[i].rightPlayer == identifyer then
+            local currentRace = BonDragRace.racelog[i]
+            local prestageTime = currentRace.triggerTimes[identifyer.."-prestageTrigR-exit"]
+            local time = currentRace.triggerTimes[identifyer.."-finishTrig-enter"] - prestageTime
+            local speed = currentRace.triggerSpeeds[identifyer.."-finishTrig-enter"]
+            local startSignalTime = currentRace.rightStartTime
+            local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigR-exit"] - startSignalTime
+            local speedType = metric and "km/h" or "mph"
+            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.3f", speed)..speedType..", R: "..reaction.."")
+            break
+        end
+    end
+end
 function BonDragRaceFinishARace()
     debugPrint()
     if not Finished() then return end
@@ -154,9 +186,9 @@ function DisplayTimesOnBoard(raceNr)
     local leftTime = 0
     local leftSpeed = 0
     local rightTime = 0
-    local rightpeed = 0
-    local displayLeft = false
-    local displayRight = false
+    local rightSpeed = 0
+    local displayLeftHidden = true
+    local displayRightHidden = true
     
     if currentRace.leftPlayer ~= nil then
         if currentRace.leftFinished then
@@ -164,7 +196,7 @@ function DisplayTimesOnBoard(raceNr)
             local leftPrestageTime = currentRace.triggerTimes[leftIdentifyer.."-prestageTrigL-exit"]
             leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - leftPrestageTime
             leftSpeed = currentRace.triggerSpeeds[leftIdentifyer.."-finishTrig-enter"]
-            displayLeft = true
+            displayLeftHidden = false
         end
     end
 
@@ -174,12 +206,12 @@ function DisplayTimesOnBoard(raceNr)
             local rightPrestageTime = currentRace.triggerTimes[rightIdentifyer.."-prestageTrigR-exit"]
             rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - rightPrestageTime
             rightSpeed = currentRace.triggerSpeeds[rightIdentifyer.."-finishTrig-enter"]
-            displayRight = true
+            displayRightHidden = false
         end
     end
 
-    debugPrint(leftTime, leftSpeed, leftTimeDigits, leftSpeedDigits)
-    local data = {leftDisplay = {hidden = displayLeft, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = displayRight, time = rightTime, speed = rightSpeed} }
+    debugPrint(leftTime, leftSpeed, rightTime, rightSpeed)
+    local data = {leftDisplay = {hidden = displayLeftHidden, time = leftTime, speed = leftSpeed}, rightDisplay = {hidden = displayRightHidden, time = rightTime, speed = rightSpeed} }
     MP.TriggerClientEventJson(-1, "BonDragRaceClientDisplayUpdate", data)
 
     --BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
