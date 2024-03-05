@@ -80,7 +80,7 @@ function handleOnBonDragRaceTrigger(sender_id, data) --hadels clients activating
     end
     
 
-    if  BonDragRace.racelog[BonDragRace.currentRace].started then --logs the clientClock time when activating a trigger
+    if  not BonDragRace.racelog[BonDragRace.currentRace].finished then --logs the clientClock time when activating a trigger
         BonDragRace.racelog[BonDragRace.currentRace].triggerTimes[identifyer.."-"..triggerName.."-"..triggerEvent] = clientClock
         BonDragRace.racelog[BonDragRace.currentRace].triggerSpeeds[identifyer.."-"..triggerName.."-"..triggerEvent] = getSpeed(velocityLen)
     end
@@ -148,8 +148,8 @@ function sendRaceLog(identifyer, sender_id)
             local startSignalTime = currentRace.leftStartTime
             local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigL-exit"] - startSignalTime
             local speedType = metric and "km/h" or "mph"
-            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.3f", speed)..speedType..", R: "..reaction.."")
-            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.3f", speed)
+            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
+            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.2f", speed)
             MP.TriggerClientEventJson(sender_id, "onSlipReport", {msg = message, timeOnScreen = 15 })
             break
         end
@@ -161,8 +161,8 @@ function sendRaceLog(identifyer, sender_id)
             local startSignalTime = currentRace.rightStartTime
             local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigR-exit"] - startSignalTime
             local speedType = metric and "km/h" or "mph"
-            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.3f", speed)..speedType..", R: "..reaction.."")
-            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.3f", speed)
+            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
+            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.2f", speed)
             MP.TriggerClientEventJson(sender_id, "onSlipReport", {msg = message, timeOnScreen = 15 })
             break
         end
