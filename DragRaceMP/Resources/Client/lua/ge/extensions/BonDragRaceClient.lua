@@ -3,9 +3,9 @@
 -- Beams of Norway --
 ---------------------
 local M = {}
-Displays = {}
-BONDEBUG = false
-local function getObjects(side)
+local BonDragRaceDisplays = {}
+local BonDEBUG = false
+local function GetBonDragRaceDisplayObjects(side)
 	ret = {}
 	ret.time = {
 		digits = {
@@ -38,19 +38,17 @@ local function BonDragRaceClientResetDisplay(display)
 end
 
 local function BonDragRaceClientResetLaneDisplays(lane)
-	BonDragRaceClientResetDisplay(Displays[lane].time)
-	BonDragRaceClientResetDisplay(Displays[lane].speed)
+	BonDragRaceClientResetDisplay(BonDragRaceDisplays[lane].time)
+	BonDragRaceClientResetDisplay(BonDragRaceDisplays[lane].speed)
 end
 
 local function BonDragRaceClientSetDisplay(display, number, isTimeDisplay)
-    -- Check if the number is 0
-    if number == 0 then
+	if number == 0 then
         BonDragRaceClientResetDisplay(display)
         return
     end
-	
-   -- Convert the number to a string
-    local str_number = tostring(number)
+
+	local str_number = tostring(number)
 	dump(number)
 	dump(str_number)
 
@@ -99,7 +97,7 @@ local function BonDragRaceClientSetDisplay(display, number, isTimeDisplay)
 	dump(str_right)
 	
 	-- Update the display
-    for i = 1, 5, 1 do
+	for i = 1, 5, 1 do
 		local c = ' '
 		if i <= dot_position then
 			c = str_left:sub(i,i)
@@ -109,31 +107,31 @@ local function BonDragRaceClientSetDisplay(display, number, isTimeDisplay)
 		dump(c)
 		
 		if c ~= ' ' then
-            local path = 'art/shapes/quarter_mile_display/display_' .. c .. '.dae'
-
-            display.digits[i]:preApply()
-            display.digits[i]:setField('shapeName', 0, path)
-            display.digits[i]:setHidden(false)
-            display.digits[i]:postApply()
-        else
-            display.digits[i]:setHidden(true)
-        end
-    end
-
-    display.dot:setHidden(hideDot)
+	        local path = 'art/shapes/quarter_mile_display/display_' .. c .. '.dae'
+	
+	        display.digits[i]:preApply()
+	        display.digits[i]:setField('shapeName', 0, path)
+	        display.digits[i]:setHidden(false)
+	        display.digits[i]:postApply()
+	    else
+	        display.digits[i]:setHidden(true)
+	    end
+	end
+	
+	display.dot:setHidden(hideDot)
 end
 
 local function BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay -> hidden, time, speed
 	local decodedData = jsonDecode(data)
-	debugPrint(decodedData)
+	BonDragRaceDebugPrint(decodedData)
 	dump(decodedData)
 	leftDisplayInfo = decodedData.leftDisplay
 	rightDisplayInfo = decodedData.rightDisplay
 
-	leftTimeDisplay = Displays[1].time
-	leftSpeedDisplay = Displays[1].speed
-	rightTimeDisplay = Displays[2].time
-	rightSpeedDisplay = Displays[2].speed
+	leftTimeDisplay = BonDragRaceDisplays[1].time
+	leftSpeedDisplay = BonDragRaceDisplays[1].speed
+	rightTimeDisplay = BonDragRaceDisplays[2].time
+	rightSpeedDisplay = BonDragRaceDisplays[2].speed
 	
 	BonDragRaceClientSetDisplay(leftTimeDisplay, leftDisplayInfo.time, true)
 	BonDragRaceClientSetDisplay(leftSpeedDisplay, leftDisplayInfo.speed, false)
@@ -148,29 +146,34 @@ local function BonDragRaceClientDisplayUpdate(data) -- leftDisplay/rightDisplay 
 	end
 end
 local function onBeamNGTrigger(data)
-    debugPrint()
-	local currentOsClockHp = os.clockhp()
-    debugPrint()
-	local vehicle = be:getObjectByID(data.subjectID)
+	if not MPVehicleGE.isOwn(data.subjectID) then
+		return --not our vehicle, not our responsibillity to report...
+	end
+    local currentOsClockHp = os.clockhp()
+    local vehicle = be:getObjectByID(data.subjectID)
 	local velLen = vehicle:getVelocity():len()
 	local jsonData = jsonEncode({eventType = "BonDragRaceTrigger", triggerInfo = data, osclockhp = currentOsClockHp, velocityLen = velLen})
-    debugPrint()
     TriggerServerEvent("onBonDragRaceTrigger", jsonData)
-    debugPrint()
-	return
+	print("Sent to server:"..jsonData)
+	if data.triggerName == "finishTrig" then
+		scenetree.findObject("finishTrig"):setField('tickPeriod','',100)
+		print("Setting TickPeriod to 100")
+	end
+    return
 end
 
 function BonDragRaceLights(data)
-	--{lightName = lightName, state = lightState }
 	local dataDecoded = jsonDecode(data)
-    debugPrint(dataDecoded)
+    BonDragRaceDebugPrint(dataDecoded)
 	local light = scenetree.findObject(dataDecoded.lightName)
-    debugPrint()
+    BonDragRaceDebugPrint()
 	light:setHidden(not dataDecoded.state)
-    debugPrint()
+    BonDragRaceDebugPrint()
 end
 
 function BonDragRaceReportStartTime(data)
+	scenetree.findObject("finishTrig"):setField('tickPeriod','',10)
+	print("Setting TickPeriod to 10")
     local decodedData = jsonDecode(data)
     local raceNr = decodedData.raceNr
     local jsonData = jsonEncode({eventType = "BonDragRaceStartTimeReport", osclockhp = os.clockhp()})
@@ -178,33 +181,47 @@ function BonDragRaceReportStartTime(data)
 end
 
 function onExtensionLoaded()
-	Displays = {
-		getObjects('L'), --rename to be more unique??
-		getObjects('R'),
+	BonDragRaceDisplays = {
+		GetBonDragRaceDisplayObjects('L'), 
+		GetBonDragRaceDisplayObjects('R'),
 	}
     print("BON.lua Loaded")
 end
 function onExtensionUnloaded()
     print("BON.lua Unloaded")
 end
+
+local function onWorldReadyState(worldReadyState)
+	if worldReadyState == 2 then
+		local jsonData = jsonEncode({eventType = "onBonDragRaceWorldReadyState2", osclockhp = os.clockhp()})
+		TriggerServerEvent("onBonDragRaceWorldReadyState2", jsonData)
+	end
+end
+local function onSlipReport(data)
+	dataDecoded = jsonDecode(data)
+	dump(data)
+	guihooks.trigger('Message', {msg = dataDecoded.msg, ttl = tonumber(dataDecoded.timeOnScreen), category = "flag", icon = "flag"}) 
+end
 --BonDragRaceLights
+AddEventHandler("onSlipReport", onSlipReport)
+AddEventHandler("onWorldReadyState", onWorldReadyState)
 AddEventHandler("BonDragRaceLights", BonDragRaceLights)
 AddEventHandler("BonDragRaceReportStartTime", BonDragRaceReportStartTime)
 AddEventHandler("BonDragRaceClientDisplayUpdate", BonDragRaceClientDisplayUpdate)
 
 M.onInit = function() setExtensionUnloadMode(M, "manual") end
-
+M.onSlipReport = onSlipReport
 M.BonDragRaceReportStartTime = BonDragRaceReportStartTime
 M.BonDragRaceClientDisplayUpdate = BonDragRaceClientDisplayUpdate
 M.onBeamNGTrigger = onBeamNGTrigger
 M.onExtensionLoaded = onExtensionLoaded
 M.onExtensionUnloaded = onExtensionUnloaded
-
+M.onWorldReadyState = onWorldReadyState
 M.BonDragRaceLights = BonDragRaceLights
 
 --
-function debugPrint(...)
-    if not BONDEBUG then return end
+function BonDragRaceDebugPrint(...)
+    if not BonDEBUG then return end
     local info = debug.getinfo(2, "nSl")
     local source = info.short_src or info.source or "unknown"
     local line = info.currentline or 0
@@ -213,9 +230,4 @@ function debugPrint(...)
     local debugInfo = string.format("[%s:%d - %s] ", source, line, funcName)
     print(debugInfo, ...)
 end
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARHRHRHRHRHRHRHRHRHRHRHRHRHRHRHR")
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARHRHRHRHRHRHRHRHRHRHRHRHRHRHRHR")
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARHRHRHRHRHRHRHRHRHRHRHRHRHRHRHR")
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARHRHRHRHRHRHRHRHRHRHRHRHRHRHRHR")
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARHRHRHRHRHRHRHRHRHRHRHRHRHRHRHR")
 return M
