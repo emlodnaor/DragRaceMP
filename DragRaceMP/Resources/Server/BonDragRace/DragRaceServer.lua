@@ -203,6 +203,10 @@ function DisplayTimesOnBoard(raceNr)
         if currentRace.leftFinished then
             local leftIdentifyer = currentRace.leftPlayer
             local leftPrestageTime = currentRace.triggerTimes[leftIdentifyer.."-prestageTrigL-exit"]
+            if leftPrestageTime == nil then
+                debugPrint("PreStageError")
+                dump(currentRace)
+            end
             leftTime = currentRace.triggerTimes[leftIdentifyer.."-finishTrig-enter"] - leftPrestageTime
             leftSpeed = currentRace.triggerSpeeds[leftIdentifyer.."-finishTrig-enter"]
             displayLeftHidden = false
@@ -213,6 +217,10 @@ function DisplayTimesOnBoard(raceNr)
         if currentRace.rightFinished then
             local rightIdentifyer = currentRace.rightPlayer
             local rightPrestageTime = currentRace.triggerTimes[rightIdentifyer.."-prestageTrigR-exit"]
+            if rightPrestageTime == nil then
+                debugPrint("PreStageError")
+                dump(currentRace)
+            end
             rightTime = currentRace.triggerTimes[rightIdentifyer.."-finishTrig-enter"] - rightPrestageTime
             rightSpeed = currentRace.triggerSpeeds[rightIdentifyer.."-finishTrig-enter"]
             displayRightHidden = false
