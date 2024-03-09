@@ -136,37 +136,80 @@ end
 
 function sendRaceLog(identifyer, sender_id)
     for i = #BonDragRace.racelog, 1, -1 do
-        if not Finished(i) then
-            MP.SendChatMessage(sender_id,"Rid: "..i..", in not yet finished...")
-            goto continue
-        end
-        if BonDragRace.racelog[i].leftPlayer == identifyer then
+        if BonDragRace.racelog[i].leftPlayer == identifyer or BonDragRace.racelog[i].rightPlayer == identifyer and Finished(i) then
             local currentRace = BonDragRace.racelog[i]
-            local prestageTime = currentRace.triggerTimes[identifyer.."-prestageTrigL-exit"]
-            local time = currentRace.triggerTimes[identifyer.."-finishTrig-enter"] - prestageTime
-            local speed = currentRace.triggerSpeeds[identifyer.."-finishTrig-enter"]
-            local startSignalTime = currentRace.leftStartTime
-            local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigL-exit"] - startSignalTime
+
+            local leftPrestageTime = "\u{2003}\u{2003}"
+            local leftTime60 = "\u{2003}\u{2003}"
+            local leftTime330 = "\u{2003}\u{2003}"
+            local leftTime18 = "\u{2003}\u{2003}"
+            local leftTime1000 = "\u{2003}\u{2003}"
+            local leftTimeFinish ="\u{2003}\u{2003}"
+            local leftSpeed = "\u{2003}\u{2003}"
+            local leftStartSignalTime = "\u{2003}\u{2003}"
+            local leftReaction = "\u{2003}\u{2003}"
+
+            if BonDragRace.racelog[i].leftPlayer ~= nil then
+                leftPrestageTime = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-prestageTrigL-exit"])
+                leftTime60 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-sixtyTrig-enter"] - leftPrestageTime)
+                leftTime330 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-threeThirtyTrig-enter"] - leftPrestageTime)
+                leftTime18 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-oneEighthTrig-enter"] - leftPrestageTime)
+                leftTime1000 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-thousandTrig-enter"] - leftPrestageTime)
+                leftTimeFinish = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-finishTrig-enter"] - leftPrestageTime)
+                leftSpeed = string.format("%.2f",currentRace.triggerSpeeds[BonDragRace.racelog[i].leftPlayer.."-finishTrig-enter"])
+                leftStartSignalTime = string.format("%.3f",currentRace.leftStartTime)
+                leftReaction = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-prestageTrigL-exit"] - leftStartSignalTime)
+            end
+
+            local rightPrestageTime = ""
+            local rightTime60 = ""
+            local rightTime330 = ""
+            local rightTime18 = ""
+            local rightTime1000 = ""
+            local rightTimeFinish = ""
+            local rightSpeed = ""
+            local rightStartSignalTime = ""
+            local rightReaction = ""
+
+            if BonDragRace.racelog[i].rightPlayer ~= nil then
+                rightPrestageTime = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-prestageTrigR-exit"])
+                rightTime60 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-sixtyTrig-enter"] - rightPrestageTime)
+                rightTime330 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-threeThirtyTrig-enter"] - rightPrestageTime)
+                rightTime18 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-oneEighthTrig-enter"] - rightPrestageTime)
+                rightTime1000 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-thousandTrig-enter"] - rightPrestageTime)
+                rightTimeFinish = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-finishTrig-enter"] - rightPrestageTime)
+                rightSpeed = string.format("%.2f",currentRace.triggerSpeeds[BonDragRace.racelog[i].rightPlayer.."-finishTrig-enter"])
+                rightStartSignalTime = string.format("%.3f",currentRace.rightStartTime)
+                rightReaction = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-prestageTrigR-exit"] - rightStartSignalTime)
+            end
+
+            local raceIdString = "===========\u{2003}Race "..i.."\u{2003}==========="
+            local lineNameString = "Left Lane:\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}Right Lane:"
+            local reactionString = "R/T: "..leftReaction.."\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}R/T: "..rightReaction
+            local timeString60 = "60Ft: "..leftTime60.."\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2002}60Ft: "..rightTime60
+            local timeString330 = "330Ft"
+            local timeString18 = "1/8: "..leftTime18.."\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}1/8: "..rightTime18
+            local timeString1000 = "1000"
+            local timeStringFinish = "1/4: "..leftTimeFinish.."\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}1/4: "..rightTimeFinish
             local speedType = metric and "km/h" or "mph"
-            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
-            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.2f", speed)
+            local speedString = speedType..": "..leftSpeed.."\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}"..speedType..": "..rightSpeed
+            local winnerString = ""
+            if BonDragRace.racelog[i].leftPlayer ~= nil and BonDragRace.racelog[i].rightPlayer ~= nil then
+                winnerString = "\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}Winner"
+                if leftTimeFinish < rightTimeFinish then winnerString = "Winner" end
+            end
+
+            if BonDragRace.racelog[i].leftPlayer == identifyer then
+                --MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
+            end
+            if BonDragRace.racelog[i].rightPlayer == identifyer then
+
+            end
+
+            local message = raceIdString.."\n"..lineNameString.."\n"..reactionString.."\n"..timeString60.."\n"..timeString18.."\n"..timeStringFinish.."\n"..speedString.."\n"..winnerString
             MP.TriggerClientEventJson(sender_id, "onSlipReport", {msg = message, timeOnScreen = 15 })
             break
         end
-        if BonDragRace.racelog[i].rightPlayer == identifyer then
-            local currentRace = BonDragRace.racelog[i]
-            local prestageTime = currentRace.triggerTimes[identifyer.."-prestageTrigR-exit"]
-            local time = currentRace.triggerTimes[identifyer.."-finishTrig-enter"] - prestageTime
-            local speed = currentRace.triggerSpeeds[identifyer.."-finishTrig-enter"]
-            local startSignalTime = currentRace.rightStartTime
-            local reaction = currentRace.triggerTimes[identifyer.."-prestageTrigR-exit"] - startSignalTime
-            local speedType = metric and "km/h" or "mph"
-            MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
-            local message = "Race id: "..i.." \nR/T: "..string.format("%.3f", reaction).."\n1/4: "..string.format("%.3f", time).."\n"..speedType..": "..string.format("%.2f", speed)
-            MP.TriggerClientEventJson(sender_id, "onSlipReport", {msg = message, timeOnScreen = 15 })
-            break
-        end
-        ::continue::
     end
 end
 function BonDragRaceFinishARace()
