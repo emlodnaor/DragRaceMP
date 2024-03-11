@@ -136,7 +136,7 @@ end
 
 function sendRaceLog(identifyer, sender_id)
     for i = #BonDragRace.racelog, 1, -1 do
-        if BonDragRace.racelog[i].leftPlayer == identifyer or BonDragRace.racelog[i].rightPlayer == identifyer and Finished(i) then
+        if (BonDragRace.racelog[i].leftPlayer == identifyer or BonDragRace.racelog[i].rightPlayer == identifyer) and Finished(i) then
             local currentRace = BonDragRace.racelog[i]
 
             local leftPrestageTime = "\u{2003}\u{2003}"
