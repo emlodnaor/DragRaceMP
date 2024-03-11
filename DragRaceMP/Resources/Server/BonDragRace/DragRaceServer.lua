@@ -200,10 +200,10 @@ function sendRaceLog(identifyer, sender_id)
             end
 
             if BonDragRace.racelog[i].leftPlayer == identifyer then
-                --MP.SendChatMessage(sender_id,"Rid: "..i.." T:"..string.format("%.3f", time).."sec, S:"..string.format("%.2f", speed)..speedType..", R: "..string.format("%.3f", reaction).."")
+                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..string.format("%.3f", leftTime).."sec, S:"..string.format("%.2f", leftSpeed)..speedType..", R: "..string.format("%.3f", leftReaction).."")
             end
             if BonDragRace.racelog[i].rightPlayer == identifyer then
-
+                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..string.format("%.3f", rightTime).."sec, S:"..string.format("%.2f", rightSpeed)..speedType..", R: "..string.format("%.3f", rightReaction).."")
             end
 
             local message = raceIdString.."\n"..lineNameString.."\n"..reactionString.."\n"..timeString60.."\n"..timeString18.."\n"..timeStringFinish.."\n"..speedString.."\n"..winnerString
