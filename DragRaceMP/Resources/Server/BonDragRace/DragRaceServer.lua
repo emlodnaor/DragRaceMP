@@ -136,7 +136,8 @@ end
 
 function sendRaceLog(identifyer, sender_id)
     for i = #BonDragRace.racelog, 1, -1 do
-        if (BonDragRace.racelog[i].leftPlayer == identifyer or BonDragRace.racelog[i].rightPlayer == identifyer) and Finished(i) then
+        local isPlayer = BonDragRace.racelog[i].leftPlayer == identifyer or BonDragRace.racelog[i].rightPlayer == identifyer
+        if isPlayer and Finished(i) then
             local currentRace = BonDragRace.racelog[i]
 
             local leftPrestageTime = "\u{2003}\u{2003}"
@@ -200,10 +201,10 @@ function sendRaceLog(identifyer, sender_id)
             end
 
             if BonDragRace.racelog[i].leftPlayer == identifyer then
-                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..string.format("%.3f", leftTime).."sec, S:"..string.format("%.2f", leftSpeed)..speedType..", R: "..string.format("%.3f", leftReaction).."")
+                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..leftTimeFinish.."sec, S:"..leftSpeed..speedType..", R: "..leftReaction.."")
             end
             if BonDragRace.racelog[i].rightPlayer == identifyer then
-                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..string.format("%.3f", rightTime).."sec, S:"..string.format("%.2f", rightSpeed)..speedType..", R: "..string.format("%.3f", rightReaction).."")
+                MP.SendChatMessage(sender_id,"Race: "..i.." T:"..rightTimeFinish.."sec, S:"..rightSpeed..speedType..", R: "..rightReaction.."")
             end
 
             local message = raceIdString.."\n"..lineNameString.."\n"..reactionString.."\n"..timeString60.."\n"..timeString18.."\n"..timeStringFinish.."\n"..speedString.."\n"..winnerString
