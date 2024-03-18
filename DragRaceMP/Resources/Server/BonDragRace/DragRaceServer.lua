@@ -151,14 +151,14 @@ function sendRaceLog(identifyer, sender_id)
             local leftReaction = "\u{2003}\u{2003}"
 
             if BonDragRace.racelog[i].leftPlayer ~= nil then
-                leftPrestageTime = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-prestageTrigL-exit"])
+                leftPrestageTime = currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-prestageTrigL-exit"]
                 leftTime60 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-sixtyTrig-enter"] - leftPrestageTime)
                 leftTime330 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-threeThirtyTrig-enter"] - leftPrestageTime)
                 leftTime18 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-oneEighthTrig-enter"] - leftPrestageTime)
                 leftTime1000 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-thousandTrig-enter"] - leftPrestageTime)
                 leftTimeFinish = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-finishTrig-enter"] - leftPrestageTime)
                 leftSpeed = string.format("%.2f",currentRace.triggerSpeeds[BonDragRace.racelog[i].leftPlayer.."-finishTrig-enter"])
-                leftStartSignalTime = string.format("%.3f",currentRace.leftStartTime)
+                leftStartSignalTime = currentRace.leftStartTime
                 leftReaction = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].leftPlayer.."-prestageTrigL-exit"] - leftStartSignalTime)
             end
 
@@ -173,14 +173,14 @@ function sendRaceLog(identifyer, sender_id)
             local rightReaction = ""
 
             if BonDragRace.racelog[i].rightPlayer ~= nil then
-                rightPrestageTime = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-prestageTrigR-exit"])
+                rightPrestageTime = currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-prestageTrigR-exit"]
                 rightTime60 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-sixtyTrig-enter"] - rightPrestageTime)
                 rightTime330 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-threeThirtyTrig-enter"] - rightPrestageTime)
                 rightTime18 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-oneEighthTrig-enter"] - rightPrestageTime)
                 rightTime1000 = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-thousandTrig-enter"] - rightPrestageTime)
                 rightTimeFinish = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-finishTrig-enter"] - rightPrestageTime)
                 rightSpeed = string.format("%.2f",currentRace.triggerSpeeds[BonDragRace.racelog[i].rightPlayer.."-finishTrig-enter"])
-                rightStartSignalTime = string.format("%.3f",currentRace.rightStartTime)
+                rightStartSignalTime = currentRace.rightStartTime
                 rightReaction = string.format("%.3f",currentRace.triggerTimes[BonDragRace.racelog[i].rightPlayer.."-prestageTrigR-exit"] - rightStartSignalTime)
             end
 
