@@ -197,7 +197,7 @@ function sendRaceLog(identifyer, sender_id)
             local winnerString = ""
             if BonDragRace.racelog[i].leftPlayer ~= nil and BonDragRace.racelog[i].rightPlayer ~= nil then
                 winnerString = "\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}\u{2003}Winner"
-                if leftTimeFinish < rightTimeFinish then winnerString = "Winner" end
+                if leftTimeFinish+leftReaction < rightTimeFinish+rightReaction then winnerString = "Winner" end
             end
 
             if BonDragRace.racelog[i].leftPlayer == identifyer then
