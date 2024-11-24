@@ -25,4 +25,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Resources\Client\lua\ge\extensions\gameplay\drag\" />
+  </ItemGroup>
+
 </Project>
